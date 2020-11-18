@@ -7,13 +7,13 @@ library(palmerpenguins)
 penguin <- penguins_raw %>%
   janitor::clean_names()
 
-# do a summary to look at the four varibales used
+# do a summary to look at the four variables used
 penguin %>%
   select(body_mass_g,
          ends_with("_mm")) %>%
   summary()
 
-# filter out the rows with mising values
+# filter out the rows with missing values
 penguin <- penguin %>%
   filter(!is.na(body_mass_g))
 
@@ -49,6 +49,9 @@ pca_labelled <- data.frame(pca$x, common_name = penguin$common_name)
 # scatterplot
 pca_labelled %>% 
   ggplot(aes(x = PC1, y = PC2, color = common_name)) +
-  geom_point()
+  geom_point() +
+  scale_color_manual(values = c("blue", "yellow", "red"))
 
-
+# Notes
+# PC2 is completely uncorrelated with PC1
+# PC1 = ax + by  <- is linear as there are no powers, a and b are 'loadings'
