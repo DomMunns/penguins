@@ -1,5 +1,9 @@
 library(tidyverse)
 
+######
+
+## Workshop 6
+
 # load package to access the data
 library(palmerpenguins)
 
@@ -55,3 +59,19 @@ pca_labelled %>%
 # Notes
 # PC2 is completely uncorrelated with PC1
 # PC1 = ax + by  <- is linear as there are no powers, a and b are 'loadings'
+
+##############
+
+## workshop 7
+
+
+
+
+
+
+
+
+
+
+
+

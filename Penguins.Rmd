@@ -1,0 +1,120 @@
+---
+title: "Penguins"
+author: "Dominic Munns"
+date: "23/11/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(caret)
+library(GGally)
+install.packages('e1071', dependencies=TRUE)
+```
+
+## 
+
+```{r penguins: no train or test}
+
+# load the package to get the data
+library(palmerpenguins)
+
+# clean the variable names for ease of use
+penguin <- penguins_raw %>%
+  janitor::clean_names()
+
+# filter out the rows with the missing values - not working?
+penguin <- penguin %>% 
+  filter(!is.na(body_mass_g))
+
+# split species into common_name and scientific_name
+penguin <- penguin %>% 
+  extract(species, 
+          c("common_name", "scientific_name"),
+          "([a-zA-Z]+\\s[a-zA-Z]+)\\s\\(([a-zA-Z]+\\s[a-zA-Z]+)\\)")
+
+# select the four variables and pipe into the MASS::lda() fucntion which carries out the PCA
+lda <- penguin %>% 
+  select(body_mass_g,
+         ends_with("_mm")) %>%
+  MASS::lda(grouping = penguin$common_name)
+
+# view the importance of each variable in each discriminant
+lda$scaling
+
+# select the variables from penguin that are in the model and predict the species from the lda model object
+# predict() gives the species predicted by the model for each observation
+plda <- penguin %>% 
+  select(body_mass_g,
+         ends_with("_mm")) %>%
+  predict(object = lda)
+
+# caret provides a function to examine the confusion matrix
+# the confusion matrix is a table which gives the number of:
+# correct predictions: the species predicted matches the observed species
+# incorrect predictions: the species predicted does not match the observed species. for each species.
+# The confusionMatrix() function also outputs:
+# Accuracy - No. correct predictions / No. of observations
+# 95% CI - 95 percent confidence interval on the accuracy (using binom.test())
+# No Information Rate - No. observations in the largest class / Number of observations
+# P-Value [Acc > NIR] - Is the model significantly better than than you could do by always predicting the most common class (again using binom.test()).
+confusionMatrix(plda$class, factor(penguin$common_name))
+# The model had an accuracy of 98.8304%. There were 151 Adelie Penguins of which 1 were predicted incorrectly; 68 Chinstrap Penguins of which 3 were predicted incorrectly; and 123 Gentoo Penguins of which 0 were predicted incorrectly. 
+# See confusion matrix and statistics below for this
+
+
+# To plot, we might want to use the scores on each of the new axes and colour them by species. The scores are in a variable called $x in plda
+# extract the scores into a dataframe with the species names
+lda_labelled <- data.frame(plda$x,
+                              common_name = penguin$common_name)
+
+# create a scatter plot
+lda_labelled %>% 
+  ggplot(aes(x = LD1, y = LD2, color = common_name)) +
+  geom_point()
+
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r penguins: train and test}
+# We used the same data to train the LDA model as we used to examine its performance. Few were incorrectly classified. But this is not very robust - we could have overfitting.
+# can use the caret function createDataPartition() to split the dataset in to traing and testing sets
+
+# create a vector of row numbers that will be used to split the dataset in to training and testing sets
+ids <- createDataPartition(y = penguin$common_name,
+                           p = 0.75,
+                           list = FALSE)
+
+# p is proportion of rows to sample.
+# list = FALSE gives me a vector of numbers rather than a one item list.
+
+# create the training set
+train <- penguin %>% slice(ids)
+
+# create the testing set (the rows that are not in ids)
+test <- penguin %>% slice(-ids)
+
+# perform the LDA on the training data()
+lda <- train %>%
+  select(body_mass_g,
+         ends_with("_mm")) %>%
+  MASS::lda(grouping = train$common_name)
+
+# predict classes of the test data based on the lda model
+plda <- test %>%
+  select(body_mass_g,
+         ends_with("_mm")) %>%
+  predict(object = lda)
+
+# examine the confusion matrix
+confusionMatrix(plda$class,factor(test$common_name))
+
+
+
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
